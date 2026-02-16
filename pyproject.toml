@@ -1,13 +1,13 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "ajml"
 version = "2.0.0"
 description = "AJML — Agent Job Markup Language transpiler"
 requires-python = ">=3.10"
-license = {text = "Apache License 2.0"}
+license = { text = "Apache License 2.0" }
 
 [project.scripts]
 ajml = "ajml.cli:main"

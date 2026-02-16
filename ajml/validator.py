@@ -29,6 +29,7 @@ from .errors import (
     E401, E402, E403,
     E501, E502,
     W301,
+    W302,
 )
 from .preprocessor import unescape_content
 
@@ -606,6 +607,9 @@ def validate_agent(
     # Check parallel write warnings
     warnings.extend(_check_parallel_writes(agent, filename))
 
+    # Check for state fields never referenced in any LLM prompt or output_schema
+    warnings.extend(_check_unreferenced_fields(agent, filename))
+
     # Validate subgraph references (if all_agents available)
     if all_agents:
         _validate_subgraph_refs(agent, all_agents, filename)
@@ -806,6 +810,32 @@ def _check_parallel_writes(agent: AgentAST, filename: str) -> list[AJMLWarning]:
                         "Result may be non-deterministic.",
                         filename,
                     ))
+
+    return warnings
+
+
+def _check_unreferenced_fields(agent: AgentAST, filename: str) -> list[AJMLWarning]:
+    """Warn about state fields never referenced in any LLM system_prompt or output_schema."""
+    warnings = []
+
+    # Collect all ${field} references from system prompts
+    referenced: set[str] = set()
+    for node in agent.nodes:
+        if node["type"] == "llm":
+            prompt = node.get("system_prompt", "")
+            referenced.update(re.findall(r"\$\{(\w+)\}", prompt))
+            for field in node.get("output_schema", []):
+                referenced.add(field["name"])
+
+    for field in agent.state_fields:
+        if field["name"] not in referenced:
+            warnings.append(AJMLWarning(
+                W302,
+                f"State field `{field['name']}` is never referenced in any "
+                "LLM `<system_prompt>` (via ${{field}}) or `<output_schema>`. "
+                "The LLM will not see this field's value.",
+                filename,
+            ))
 
     return warnings
 

@@ -224,7 +224,7 @@ def cmd_init(args) -> int:
     <graph>
         <node id="respond" type="llm">
             <system_prompt>
-                You are a helpful assistant. Respond to the user's input.
+                You are a helpful assistant. Respond to the user's input: ${{user_input}}
             </system_prompt>
             <output_schema>
                 <field name="response" type="string" description="Your response" />

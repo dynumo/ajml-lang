@@ -89,6 +89,7 @@ E502 = "E502"  # Invalid interpolation syntax
 
 # Warnings
 W301 = "W301"  # Parallel branches may write to same overwrite field
+W302 = "W302"  # State field never referenced in any system_prompt
 
 # Reserved words
 RESERVED_WORDS = frozenset({

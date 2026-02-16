@@ -509,3 +509,52 @@ class TestCrossAgentValidation:
         agents = {"agent_a": agent_a, "agent_b": agent_b}
         with pytest.raises(AJMLCompilationError, match="E402"):
             check_circular_dependencies(agents)
+
+
+class TestUnreferencedFieldWarnings:
+    """Test W302 warnings for state fields never referenced in LLM prompts."""
+
+    def test_unreferenced_field_warns(self):
+        raw = '''<?xml version="1.0"?>
+<agent name="test_agent">
+    <state>
+        <field name="user_input" type="string" required="true" />
+        <field name="response" type="string" default="" />
+    </state>
+    <graph>
+        <node id="respond" type="llm">
+            <system_prompt>You are a helpful assistant.</system_prompt>
+            <output_schema>
+                <field name="response" type="string" description="Your response" />
+            </output_schema>
+        </node>
+        <edge source="__START__" target="respond" />
+        <edge source="respond" target="__END__" />
+    </graph>
+</agent>'''
+        agent, warnings = _parse_agent(raw)
+        w302 = [w for w in warnings if w.code == "W302"]
+        assert len(w302) == 1
+        assert "user_input" in w302[0].message
+
+    def test_referenced_field_no_warning(self):
+        raw = '''<?xml version="1.0"?>
+<agent name="test_agent">
+    <state>
+        <field name="user_input" type="string" required="true" />
+        <field name="response" type="string" default="" />
+    </state>
+    <graph>
+        <node id="respond" type="llm">
+            <system_prompt>Respond to: ${user_input}</system_prompt>
+            <output_schema>
+                <field name="response" type="string" description="Your response" />
+            </output_schema>
+        </node>
+        <edge source="__START__" target="respond" />
+        <edge source="respond" target="__END__" />
+    </graph>
+</agent>'''
+        agent, warnings = _parse_agent(raw)
+        w302 = [w for w in warnings if w.code == "W302"]
+        assert len(w302) == 0
